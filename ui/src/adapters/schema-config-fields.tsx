@@ -205,12 +205,10 @@ function ComboboxField({
 
 const schemaCache = new Map<string, AdapterConfigSchema | null>();
 const schemaFetchInflight = new Map<string, Promise<AdapterConfigSchema | null>>();
-const failedSchemaTypes = new Set<string>();
 
 async function fetchConfigSchema(adapterType: string): Promise<AdapterConfigSchema | null> {
   const cached = schemaCache.get(adapterType);
   if (cached !== undefined) return cached;
-  if (failedSchemaTypes.has(adapterType)) return null;
 
   const inflight = schemaFetchInflight.get(adapterType);
   if (inflight) return inflight;
@@ -219,14 +217,12 @@ async function fetchConfigSchema(adapterType: string): Promise<AdapterConfigSche
     try {
       const res = await fetch(`/api/adapters/${encodeURIComponent(adapterType)}/config-schema`);
       if (!res.ok) {
-        failedSchemaTypes.add(adapterType);
         return null;
       }
       const schema = (await res.json()) as AdapterConfigSchema;
       schemaCache.set(adapterType, schema);
       return schema;
     } catch {
-      failedSchemaTypes.add(adapterType);
       return null;
     } finally {
       schemaFetchInflight.delete(adapterType);
@@ -239,7 +235,6 @@ async function fetchConfigSchema(adapterType: string): Promise<AdapterConfigSche
 
 export function invalidateConfigSchemaCache(adapterType: string): void {
   schemaCache.delete(adapterType);
-  failedSchemaTypes.delete(adapterType);
 }
 
 // ---------------------------------------------------------------------------
